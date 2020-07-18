@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<head>
+<meta http-equiv="Content-type" content="application/xml+xhtml;charset=UTF-8" />
+<meta name="fragment" content="!">
+<title>NCAR's RDA</title>
+<link rel="stylesheet" type="text/css" href="/css/styleup.css">
+<link rel="stylesheet" type="text/css" href="/css/newstyle.css">
+<link rel="stylesheet" type="text/css" href="/css/bubble.css">
+<link rel="stylesheet" type="text/css" href="/css/bootstrap.rda.css"><script language="javascript">
+var gmap2_loaded=false;
+var gmap3_loaded=false;
+var cancel_hashchange=false;
+var hashchange_supported;
+var hashpoll_interval;
+function respondToHashChange() {
+  if (cancel_hashchange) {
+    cancel_hashchange=false;
+    return;
+  }
+  if (!hashchange_supported) {
+    clearInterval(hashpoll_interval);
+  }
+// any variable initializations that should happen on hashchange go here
+  dssearch_adv_filled=false;
+getContent('content_container','/php/ajax/error.php?code=403&url=/data/ds083.2/grib2/2020/2020.01/fnl_20200101_00_00.grib2');  if (!hashchange_supported) {
+    hashpoll_interval=setInterval("pollForHashChange()",100);
+  }
+}
+function pollForHashChange()
+{
+  if (document.location.hash != last_hash) {
+    last_hash=document.location.hash;
+    respondToHashChange();
+  }
+}
+if ("onhashchange" in window) {
+  hashchange_supported=true;
+  if (window.addEventListener) {
+    window.addEventListener("hashchange",respondToHashChange,false);
+  }
+  else if (window.attachEvent) {
+    window.attachEvent("onhashchange",respondToHashChange);
+  }
+}
+else {
+  hashchange_supported=false;
+  var last_hash='';
+  hashpoll_interval=setInterval("pollForHashChange()",100);
+}
+window.onload=respondToHashChange;
+function constructPath(epath)
+{
+  var path;
+  if (document.location.hash.length > 0) {
+    var hash=document.location.hash.substr(1);
+    if (hash.charAt(0) == '!') {
+	hash=hash.substr(1);
+    }
+    if ( (idx=hash.indexOf("?")) > 0) {
+	hash=hash.substr(0,idx)+"&"+hash.substr(idx+1);
+    }
+    path=document.location.pathname+'?hash='+hash;
+  }
+  else if (document.location.search.length > 0) {
+    if (document.location.search.indexOf("?hash=data_user") == 0) {
+	if ( (idx=document.location.search.indexOf("url=")) > 0) {
+	  var u=document.location.search.substr(idx+4);
+	  if ( (idx=u.indexOf("&")) > 0) {
+	    u=u.substr(0,idx);
+	  }
+	  path=u;
+	}
+	else {
+	  path='';
+	}
+    }
+    else if (document.location.search.indexOf("?hash=") == 0) {
+	path=document.location.pathname+document.location.search;
+    }
+    else {
+	path=document.location.pathname;
+    }
+  }
+  else {
+    path=document.location.pathname;
+  }
+  if (epath) {
+    return encodeURIComponent(path);
+  }
+  else {
+    return path;
+  }
+}
+function tabOn(t)
+{
+  var tab=document.getElementById(t);
+  if (tab != null) {
+    if (tab.className.indexOf("tab-on") > 0) {
+	return;
+    }
+  }
+  if (document.getElementsByClassName) {
+    tabs_on=document.getElementsByClassName('tab-on');
+  }
+  else {
+    tabs_on=document.getElementsByTagName('div');
+  }
+  for (n=0; n < tabs_on.length; ++n) {
+    if (tabs_on[n].className.indexOf("tab tab-on") >= 0) {
+	tabs_on[n].className="tab tab-off";
+    }
+  }
+  if (tab != null) {
+    tab.className="tab tab-on";
+  }
+}
+function dstabOn(t)
+{
+  var dstab=document.getElementById(t);
+  if (dstab != null) {
+    if (dstab.className.indexOf("dstab-on") > 0) {
+	return;
+    }
+  }
+  if (document.getElementsByClassName) {
+    dstabs_on=document.getElementsByClassName('dstab-on');
+  }
+  else {
+    dstabs_on=document.getElementsByTagName('div');
+  }
+  for (n=0; n < dstabs_on.length; ++n) {
+    if (dstabs_on[n].className.indexOf("dstab dstab-on") >= 0) {
+	dstabs_on[n].className="dstab dstab-off";
+    }
+  }
+  if (dstab != null) {
+    dstab.className="dstab dstab-on";
+  }
+}
+/**
+ * Function: loadTab
+ *   This function controls the display of the navigation tabs for individual dataset
+ *   pages and any other pages which require their own set of navigation tabs.  These
+ *   tabs are not to be confused with the main navigation tabs which appear near the
+ *   top of all RDA pages.
+ *
+ */
+function loadTab(t,d,u)
+{
+  var a=t.getAttribute("class");
+  if (a.indexOf("dstab-on") > 0) {
+    return false;
+  }
+  getContent(d,u);
+  var tabs_on=document.getElementsByClassName('dstab-on');
+  for (n=0; n < tabs_on.length; ++n) {
+    tabs_on[n].setAttribute("class","dstab dstab-off");
+  }
+  t.setAttribute("class","dstab dstab-on");
+  return true;
+}
+function loadBorderTab(t,d,u)
+{
+  var a=t.getAttribute("class");
+  if (a.indexOf("bordertab-on") > 0) {
+    return false;
+  }
+  getContent(d,u);
+  var tabs_on=document.getElementsByClassName('bordertab-on');
+  for (n=0; n < tabs_on.length; ++n) {
+    tabs_on[n].setAttribute("class","bordertab bordertab-off");
+  }
+  t.setAttribute("class","bordertab bordertab-on");
+  return true;
+}
+var lastoutid='',rs_top,rs_pageYOffset;
+function slideOutFrom(r,n)
+{
+  var e=document.getElementById('refine-slider');
+  if (e.style.visibility == 'hidden' || lastoutid != r) {
+    document.getElementById('refine-slider-content').innerHTML='<div style="width: 100%; padding-top: 20px; text-align: center">Loading... <img src="/images/wait-lights.gif"></div>';
+    if (n == "y") {
+	getContent('refine-slider-content','/cgi-bin/lookfordata?nb=y&hp=yes&r='+r);
+	window.location.hash='lfd';
+	cancel_hashchange=true;
+    }
+    else {
+	if (r.indexOf("-") < 0) {
+	  getContent('refine-slider-content','/cgi-bin/lookfordata?r=@'+r+'-999');
+	}
+	else {
+	  getContent('refine-slider-content','/cgi-bin/lookfordata?r=@'+r,null,function() {
+	    getContent('lfd-content','/cgi-bin/lookfordata?dc=y');
+          });
+	}
+    }
+    if ( (idx=r.indexOf('-')) > 0) {
+	r=r.substr(0,idx);
+    }
+    if (lastoutid.length > 0) {
+	document.getElementById(lastoutid).style.fontWeight="normal";
+    }
+    document.getElementById(r).style.fontWeight="bold";
+    slideOut('refine-slider',r,'right','top-1');
+    lastoutid=r;
+  }
+  else {
+    document.getElementById(r).style.fontWeight="normal";
+    slideIn('refine-slider');
+    lastoutid='';
+  }
+  rs_top=parseInt(e.style.top);
+  rs_pageYOffset=window.pageYOffset;
+}
+var reqs_already_open=false;
+function getRequestData(h)
+{
+  document.getElementById(h).innerHTML='<span style=\'font-family: calibri,arial,helvetica,verdana,sans-serif\'><br><br><center>Loading...&nbsp;<img src=\'/images/browse_wait.gif\'></center><br><br></span>';
+  getContent(h,'/php/ajax/ckrqst_popup.php');
+}
+function showRequests(a,c,h)
+{
+  if (reqs_already_open) {
+    return;
+  }
+  var e=document.getElementById(a);
+  var oleft=e.offsetLeft;
+  var otop=e.offsetTop;
+  var oheight=e.offsetHeight;
+  while ( (e=e.offsetParent) != null) {
+    oleft+=e.offsetLeft;
+    otop+=e.offsetTop;
+  }
+  var e2=document.getElementById(c);
+  e2.style.left=oleft+'px';
+  e2.style.top=(otop+oheight+1)+'px';
+  reqs_already_open=true;
+  getRequestData(h);
+  fadeIn(c);
+}
+function hideRequests(c)
+{
+  reqs_already_open=false;
+  fadeOut(c);
+}
+function checkExpandableFields() {
+  var max_height=10000;
+  for (n=0; n < document.styleSheets.length; ++n) {
+    for (m=0; m < document.styleSheets[n].cssRules.length; ++m) {
+	if (document.styleSheets[n].cssRules[m].selectorText == '.collapsed') {
+	  max_height=parseInt(document.styleSheets[n].cssRules[m].style.getPropertyValue('height'));
+	  break;
+	}
+    }
+    if (max_height < 10000) {
+	break;
+    }
+  }
+  max_height+=10;
+  var field_list=document.getElementsByTagName("div");
+  for (n=0; n < field_list.length; ++n) {
+    if (field_list[n].className == "expandable" && parseInt(getComputedStyle(field_list[n]).height) > max_height) {
+	field_list[n].className='collapsed';
+	var expander=document.createElement('center');
+	expander.innerHTML='<span id="'+field_list[n].id+'-expander" class="expand-arrow expand-arrow-down" onclick="toggleExpand(\''+field_list[n].id+'\')"></span>';
+	field_list[n].parentNode.insertBefore(expander,field_list[n].nextSibling);
+    }
+  }
+}
+function toggleExpand(e) {
+  var c=document.getElementById(e).className;
+  if (c == "collapsed") {
+    document.getElementById(e).className='expanded';
+    eval('document.getElementById("'+e+'-expander").className="expand-arrow expand-arrow-up"');
+  }
+  else {
+    document.getElementById(e).className='collapsed';
+    eval('document.getElementById("'+e+'-expander").className="expand-arrow expand-arrow-down"');
+  }
+}
+function pop_ModalWindow(w,h)
+{
+  document.getElementById('modal-window-content').innerHTML='<center><img src="/images/loader.gif" /><br /><span style="color: #a0a0a0">Loading...</span></center>';
+  var e=document.getElementById('modal-window');
+  if (w) {
+    e.style.width=parseInt(w)+'px';
+    if (h) {
+	e.style.height=parseInt(h)+'px';
+    }
+  }
+  var e2=document.getElementById('modal-window-close');
+  e.style.left=(document.body.offsetWidth-(parseInt(e.style.width)+parseInt(e.style.paddingLeft)+parseInt(e.style.paddingRight)+parseInt(e.style.borderLeftWidth)+parseInt(e.style.borderRightWidth)))/2+'px';
+  e2.style.left=parseInt(e.style.left)+parseInt(e.style.width)+parseInt(e.style.paddingLeft)+parseInt(e.style.paddingRight)+parseInt(e.style.borderLeftWidth)+parseInt(e.style.borderRightWidth)/2-parseInt(e2.style.width)/2+'px';
+  var win_height= (window.innerHeight) ? window.innerHeight : document.body.clientHeight;
+//  var scroll_top= (window.pageYOffset) ? window.pageYOffset : document.body.scrollTop;
+//  e.style.top=((win_height-(parseInt(e.style.height)+parseInt(e.style.paddingTop)+parseInt(e.style.paddingBottom)+parseInt(e.style.borderTopWidth)+parseInt(e.style.borderBottomWidth)))/2+scroll_top)+'px';
+e.style.top=((win_height-(parseInt(e.style.height)+parseInt(e.style.paddingTop)+parseInt(e.style.paddingBottom)+parseInt(e.style.borderTopWidth)+parseInt(e.style.borderBottomWidth)))/2)+'px';
+  e2.style.top=parseInt(e.style.top)+parseInt(e.style.borderTopWidth)/2-parseInt(e2.style.height)/2+'px';
+  document.getElementById('shader').style.display='block';
+  e.style.display='block';
+  e2.style.display='block';
+  e.scrollTop=0;
+}
+function popModalWindowWithPostURL(u,p,w,h)
+{
+  pop_ModalWindow(w,h);
+  getContentFromPost('modal-window-content',u,p);
+}
+function popModalWindowWithURL(u,w,h)
+{
+  pop_ModalWindow(w,h);
+  getContent('modal-window-content',u);
+}
+function popModalWindowWithHTML(t,w,h)
+{
+  pop_ModalWindow(w,h);
+  document.getElementById('modal-window-content').innerHTML=t;
+}
+function hideModalWindow()
+{
+  document.getElementById('modal-window-close').style.display=document.getElementById('modal-window').style.display=document.getElementById('shader').style.display='none';
+}
+function popConfirm(m,a,w,h)
+{
+  popModalWindowWithHTML('<center><p></p>'+m+'<p></p><table cellspacing="0" cellpadding="0" border="0"><tr valign="middle"><td style="width: 40px; height: 28px; border: 1px solid #2a70ae; background-color: #d6e4ff; border-radius: 8px 8px 8px 8px; text-align: center; color: #2a70ae; cursor: pointer" onMouseOver="this.style.backgroundColor=&apos;#fffff5&apos;" onMouseOut="this.style.backgroundColor=&apos;#d6e4ff&apos;" onClick="'+a+';this.onclick=null">Yes</td><td>&nbsp;&nbsp;</td><td style="width: 40px; height: 28px; border: 1px solid #2a70ae; background-color: #d6e4ff; border-radius: 8px 8px 8px 8px; text-align: center; color: #2a70ae; cursor: pointer" onMouseOver="this.style.backgroundColor=&apos;#fffff5&apos;" onMouseOut="this.style.backgroundColor=&apos;#d6e4ff&apos;" onClick="hideModalWindow()">No</td></table></center>',w,h);
+}
+function RDA_scrollTo(i)
+{
+  if ( (e=document.getElementById(i)) != null) {
+    otop=e.offsetTop;
+    while ( (e=e.offsetParent) != null) {
+	otop+=e.offsetTop;
+    }
+// set both to handle all browsers
+    document.documentElement.scrollTop=otop;
+    document.body.scrollTop=otop;
+  }
+}
+function RDA_scrollToEnd()
+{
+// set both to handle all browsers
+  document.documentElement.scrollTop=99999;
+  document.body.scrollTop=99999;
+}
+</script>
+<script language="javascript" type="text/javascript" src="/metrics/js/d3.v5.min.js"></script>
+<script language="javascript" type="text/javascript" src="/metrics/js/graph_updated.js"></script>
+<script language="javascript" type="text/javascript" src="/js/xhr_content2.js"></script>
+<script language="javascript" type="text/javascript" src="/js/animation.js"></script>
+<script language="javascript" type="text/javascript" src="/js/popInfo.js"></script>
+<script language="javascript" type="text/javascript" src="/js/swapDivs.js"></script>
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-48429232-1', 'ucar.edu', {'allowLinker': true});
+ga('send', 'pageview');
+</script>
+<script language="javascript" type="text/javascript" src="/js/do_form_get.js"></script>
+</head>
+<body>
+<div id="window_container_inner" style="background-color: #a8aed1; background: rgba(255,255,255,0.4); width: 1000px; height: auto; padding: 0px 20px 20px 20px; border-radius: 0px 0px 20px 20px; margin: 0px auto 40px auto">
+<script id="menus" language="javascript">
+var fdt=-1;
+var bgcolor='';
+var tab='';
+function clearTheTimeout()
+{
+  clearTimeout(fdt);
+  fdt=-1;
+  if (tab.length > 0 && bgcolor.length > 0)
+    document.getElementById(tab).style.backgroundColor=bgcolor;
+}
+function keepMenuDown()
+{
+  if (fdt >= 0)
+    clearTheTimeout();
+}
+function menuDown(t,m,o)
+{
+  if (fdt >= 0 && document.getElementById(m).style.visibility == 'hidden') {
+    clearTheTimeout();
+    fdt=-1;
+  }
+  if (fdt < 0) {
+    if (t != null) {
+	tab=t.id;
+	bgcolor=document.getElementById(tab).style.backgroundColor;
+	e=t;
+	var oleft=e.offsetLeft;
+	var otop=e.offsetTop;
+	var oheight=e.offsetHeight;
+	while ( (e=e.offsetParent) != null) {
+	  oleft+=e.offsetLeft;
+	  otop+=e.offsetTop;
+	}
+	e=document.getElementById(m);
+	e.style.left=(oleft+o)+'px';
+	e.style.top=(otop+oheight)+'px';
+	fdt=setTimeout("document.getElementById('"+tab+"').style.backgroundColor='#d8551f';rollDown('"+m+"')",100);
+	setTimeout("clearTheTimeout()",101);
+    }
+    else {
+	fdt=setTimeout("rollDown('"+m+"')",100);
+	setTimeout("clearTheTimeout()",101);
+    }
+  }
+  else
+    clearTheTimeout();
+}
+function doMenuUp(m)
+{
+  if (tab.length > 0) {
+    rollUp(m,tab,'backgroundColor',bgcolor);
+    tab='';
+  }
+}
+function menuUp(t,m)
+{
+  if (fdt < 0) {
+    fdt=setTimeout("doMenuUp('"+m+"')",100);
+  }
+  else
+    clearTheTimeout();
+}
+</script>
+<div id="header" class="fs14px" style="width: 990px; height: auto; background-color: #272264; padding: 5px; color: #effee1"><div style="margin-left: 5px">
+<script id="login" type="text/javascript">function doLogin() {  document.sign_in.submit_button.disabled=true;  document.sign_in.action='https://rda.ucar.edu/cgi-bin/login';  document.sign_in.url.value=constructPath(false);  document.sign_in.submit();}</script><div style="overflow: hidden"><div style="display: inline; float: left; padding-left: 5px">Hello Guest<span style="margin-left: 10px"><a class="green underline" href="https://rda.ucar.edu/index.html?hash=data_user&action=register">Register Now</a>&nbsp;<a href="javascript:void(0)" onClick="popModalWindowWithURL('https://rda.ucar.edu/html/sign_in_help.html',700,400)"><img src="/images/MyInfo.png" width="14" height="14" border="0" /></a></span><span style="margin-left: 10px"><a class="green underline" href="javascript:void(0)" onClick="if (document.getElementById('login-slider').style.visibility == 'hidden') slideDown('login-slider','header')">Sign In</a>&nbsp;|&nbsp;<a class="green underline" href="https://rda.ucar.edu/index.html?hash=data_user&action=password">Forgot Password?</a></span></div></div></div></div>
+<div id="banner_container" style="position: relative; width: 1000px; height: 100px; background: #28357b url('/images/rda-logo-header.png') 0px 0px no-repeat; color: #effee1">
+<a style="width: 700px; height: 76px; position: absolute; left: 15px; top: 8px" href="/"></a>
+<div style="width: 300px; height: 60px; position: absolute; bottom: 20px; right: 20px;"><a href="https://www.nsf.gov"><img src="/images/nsf/NCAR-Sponsored-NSF-White_300x60.png"></a></div>
+</div>
+<div id="gotodsbar" style="position: relative; width: 1000px; height: 22px; background-color: #2a70ae">
+<div style="font-size: small; width: 110px; height: 22px; position: absolute; top: 0px; left: 835px; padding-left: 5px; color: #ffffff; horizontal-align: center; background-color: rgb(216,85,31);">Go to Dataset:&nbsp;&nbsp;</div>
+<div style="width: 55px; height: 22px; position: absolute; top: 0px; right: 0px; margin: 0px; padding: 0px;">
+<form name="gotods" class="inline" action="javascript:void(0)" onSubmit="location=
+'/datasets/ds'+document.gotods.dsbox.value+'/#!description'"><input name="dsbox" class="fixedWidth12" style="border: 0px; height: 22px; width: 45px; margin: 0px; padding: 0px 5px 0px 5px; position: absolute; top: 0px; background-color: #fffff5" type="text" size="5" maxlength="5" value="nnn.n" onFocus="this.value=''"></form>
+</div>
+</div>
+
+<div id="navbar" style="width: 1000px; height: 31px; background-color: #272264; text-align: center; overflow: hidden">
+<div id="tab_spacer" style="display: inline; float: left; height: 1px; width: 1px; margin-right: 10px"></div>
+<a class="clean" href="/"><div id="home-tab" class="tab tab-off" >Home</div></a>
+<div id="find-data-tab" class="tab-menu tab-menu-off" style="width: 90px" onMouseOver="menuDown(this,'find-data-menu',-10)" onMouseOut="menuUp(this,'find-data-menu')">Find Data</div>
+<a class="clean" href="/#!services"><div id="services-tab" class="tab tab-off" >Ancillary Services</div></a>
+<a class="clean" href="/#!about"><div id="about-tab" class="tab tab-off" >About/Contact</div></a>
+<div id="data-citation-tab" class="tab-menu tab-menu-off" style="width: 120px" onMouseOver="menuDown(this,'data-citation-menu',-10)" onMouseOut="menuUp(this,'data-citation-menu')">Data Citation</div>
+<a class="clean" href="/#!rda_web_services"><div id="web-services-tab" class="tab tab-off" >Web Services</div></a>
+<a class="clean" href="/#!metrics"><div id="about-tab" class="tab tab-off" >Metrics</div></a>
+<a class="clean" href="
+/internal/#home"><div id="for-staff-tab" class="tab tab-off" style="margin-right: 10px; float: right ">For Staff</div></a>
+</div>
+<div id="find-data-menu" style="position: absolute; top: 161px; visibility: hidden; box-shadow: 7px 7px 7px #4a4a4a; width: 780px; height: auto; overflow: hidden; background-color: #d8551f; padding: 10px 10px 10px 10px; z-index: 1300" onMouseOver="keepMenuDown()" onMouseOut="menuUp(null,this.id)"><a class="light-green" href=""><div><a class="light-green" href="/#!lfd?nb=y&b=all&v=Full+List">All Datasets</a> | <a class="light-green" href="/#!lfd?nb=y&b=recent&v=Matching+Datasets">Recently Added/Updated</a> | <a class="light-green" href="/#!lfd?nb=y">Browse the RDA</a></div>
+<div style="height: 1px; width: 980px; line-height: 1px; background-color: #effee1; margin-top: 10px; margin-bottom: 5px"></div>
+<div>&bull;&nbsp;GCMD Topic:<div class="ul" style="padding-right: 10px""><a class="light-green" href="/#!lfd?nb=y&b=topic&v=Agriculture"><nobr>Agriculture</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=topic&v=Atmosphere"><nobr>Atmosphere</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=topic&v=Biosphere"><nobr>Biosphere</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=topic&v=Climate Indicators"><nobr>Climate Indicators</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=topic&v=Cryosphere"><nobr>Cryosphere</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=topic&v=Human Dimensions"><nobr>Human Dimensions</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=topic&v=Hydrosphere"><nobr>Hydrosphere</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=topic&v=Land Surface"><nobr>Land Surface</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=topic&v=Oceans"><nobr>Oceans</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=topic&v=Paleoclimate"><nobr>Paleoclimate</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=topic&v=Solid Earth"><nobr>Solid Earth</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=topic&v=Spectral/engineering"><nobr>Spectral/engineering</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=topic&v=Sun-earth Interactions"><nobr>Sun-earth Interactions</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=topic&v=Terrestrial Hydrosphere"><nobr>Terrestrial Hydrosphere</nobr></a></div><div style="display: none"><h1>Atmospheric Reanalysis Data</h1><h1>Atmospheric Reanalysis Datasets</h1></div>&bull;&nbsp;Atmospheric Reanalysis Data:<div class="ul" style="padding-right: 10px"><a class="light-green" href="/#!lfd?nb=y&b=plat&v=REANALYSIS%20MODELS"><nobr>All Reanalysis Datasets</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=BPRC Arctic System Reanalysis"><nobr>BPRC Arctic System Reanalysis (ASR)</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=ECMWF 20th Century Reanalysis"><nobr>ECMWF 20th Century Reanalysis (ERA-20C)</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=ECMWF ERA 15 Reanalysis"><nobr>ECMWF ERA 15 Reanalysis (ERA15)</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=ECMWF ERA40 Reanalysis Project"><nobr>ECMWF ERA40 Reanalysis Project (ERA40)</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=ECMWF Interim Reanalysis"><nobr>ECMWF Interim Reanalysis (ERA-I)</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=ECWMF ERA5 Reanalysis"><nobr>ECWMF ERA5 Reanalysis (ERA5)</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=JMA Japanese 25-year Reanalysis"><nobr>JMA Japanese 25-year Reanalysis (JRA25)</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=JMA Japanese 55-year Reanalysis"><nobr>JMA Japanese 55-year Reanalysis (JRA55)</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=NCAR Global Climate Four-Dimensional Data Assimilation Reanalysis"><nobr>NCAR Global Climate Four-Dimensional Data Assimilation Reanalysis (CFDDA)</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=NCEP Climate Forecast System Reanalysis"><nobr>NCEP Climate Forecast System Reanalysis (CFSR)</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=NCEP North American Regional Reanalysis"><nobr>NCEP North American Regional Reanalysis (NARR)</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=NCEP/DOE Reanalysis II"><nobr>NCEP/DOE Reanalysis II (NCEPR2)</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=NCEP/NCAR Reanalysis Project"><nobr>NCEP/NCAR Reanalysis Project (NNRP)</nobr></a> <div style="display: inline-block; width: 6px; height: 6px; background-color: #27aae0; border-radius: 12px 12px 12px 12px; margin: 0px 5px 2px 5px"></div> <a class="light-green" href="/#!lfd?nb=y&b=proj&v=NOAA-CIRES 20th Century Reanalysis"><nobr>NOAA-CIRES 20th Century Reanalysis (20CR)</nobr></a></div>&bull;&nbsp;Station Observations:<div class="ul" style="padding-right: 10px">Land Surface Air Temperature: <a class="light-green" href="/#!lfd?b=var&v=Surface%20Air%20Temperature&b=type&v=Platform%20Observation&b=plat&v=GROUND%20STATIONS&b=tres&v=Hourly%20to%20%3C%20Daily">Hourly</a>, <a class="light-green" href="/#!lfd?b=var&v=Surface%20Air%20Temperature&b=type&v=Platform%20Observation&b=plat&v=GROUND%20STATIONS&b=tres&v=Monthly%20to%20%3C%20Annual">Monthly</a></div></div>
+<div style="height: 1px; width: 980px; line-height: 1px; background-color: #effee1; margin-top: 10px; margin-bottom: 5px"></div>
+<div>Find <a class="light-green" href="/#obs_search">Platform Observations</a> datasets</div>
+</div>
+<div id="data-citation-menu" style="position: absolute; top: 161px; visibility: hidden; box-shadow: 7px 7px 7px #4a4a4a; width: 270px; height: auto; overflow: hidden; background-color: #d8551f; padding: 10px 10px 10px 10px; z-index: 1300" onMouseOver="keepMenuDown()" onMouseOut="menuUp(null,this.id)"><a class="light-green" href="/#!data-citation" onClick="menuUp(null,'data-citation-menu')"><div>Data Citation Overview</div></a>
+<div style="margin-left: 15px; margin-top: 7px">
+<a class="light-green" href="/#!data-citation/reg-process" onClick="menuUp(null,'data-citation-menu')"><div>&bull;&nbsp;DOI Registration Process</div></a>
+<a class="light-green" href="/#!data-citation/use-cases" onClick="menuUp(null,'data-citation-menu')"><div>&bull;&nbsp;RDA DOI Use Cases</div></a>
+<a class="light-green" href="/#!data-citation/FAQs" onClick="menuUp(null,'data-citation-menu')"><div>&bull;&nbsp;Frequently Asked Questions (FAQs)</div></a>
+<a class="light-green" href="/#!lfd?nb=y&b=doi&v=Matching+Datasets" onClick="menuUp(null,'data-citation-menu')"><div>&bull;&nbsp;RDA Datasets Having a DOI</div></a>
+<div style="color: #a0a0a0">&bull;&nbsp;Get a Customized Data Citation</div><div style="color: #a0a0a0; font-size: 13px; padding-left: 10px; margin-top: -5px">(must be signed in)</div>
+</div>
+</div>
+<div id="login-slider" style="position: absolute; top: 0px; left: 0px; visibility: hidden; color: #effee1; background-color: #d8551f; padding: 0px 0px 10px 10px; border-radius: 0px 0px 10px 10px; z-index: 3001"><form style=\"display: inline\" name="sign_in" action="javascript:doLogin()" method="post">Email/Username:&nbsp;<input style="background-color: #fffff5" type="text" name="email" value="" size="15" />&nbsp;&nbsp;Password:&nbsp;<input style="background-color: #fffff5" type="password" name="passwd" size="8" />&nbsp;&nbsp;<input type="submit" name="submit_button" value="Sign In" onClick="doLogin()" />&nbsp;<sup><a href="javascript:void(0)"><img src="/images/close_button.png" width="20" height="20" onClick="slideUp('login-slider','header')" /></a></sup><br /><label for="remember"><input type="checkbox" name="remember" id="remember" checked /><span class="fs14px">&nbsp;Remember me on this computer</span></label><input type="hidden" name="do" value="login" /><input type="hidden" name="url" value="" /></form></div>
+<div id="content_container" style="position: relative; width: 980px; height: auto; overflow: auto; padding: 10px; background-color: #fffff5">
+<noscript>
+<span class="bold red">WARNING:</span> This website uses Javascript extensively, but it appears that your browser has disabled it.  Your accessibility to information and data will be severely limited unless you enable Javascript.
+</noscript>
+</div>
+<div style="width: 1000px; height: 3px; background-color: #272264"></div>
+<div id="footer" class="fs14px" style="position: relative; clear: left; width: 980px; height: auto; background-color: #2a70ae; padding: 10px; color: #effee1; text-align: center; border-radius: 0px 0px 20px 20px">
+<a href="http://www.icsu-wds.org/" target="_blank"><img src="/images/coretrustseal/WDS_logo_1.jpg" style="position:absolute; bottom: 20px; left: 20px; width: 7%; height: auto;"></img></a>
+<a href="https://www.coretrustseal.org/" target="_blank"><img src="/images/coretrustseal/CoreTrustSeal-logo.jpg" style="position:absolute; bottom: 20px; right: 20px; width: 6%; height: auto;"></img></a>
+The Research Data Archive is managed by the Data Engineering and Curation Section of the Computational and Information Systems Laboratory at the National Center for Atmospheric Research in Boulder, Colorado. The National Center for Atmospheric Research is sponsored by the National Science Foundation.  Any opinions, findings, and conclusions or recommendations expressed in this material do not necessarily reflect the views of the National Science Foundation.<br><br>
+Follow us:&nbsp;&nbsp;<a class="follow" href="http://ncarrda.blogspot.com/feeds/posts/default"><img src="/images/rss_icon.png" width="18" height="18" align="absmiddle" border="0">&nbsp;Atom</a>&nbsp;&nbsp;&nbsp;<a class="follow" href="http://www.facebook.com/pages/NCAR-CISL-Research-Data-Archive/126882580718505"><img src="/images/facebook/FB-f-Logo__blue_29.png" width="18" height="18" align="absmiddle" border="0">&nbsp;Facebook</a>&nbsp;&nbsp;&nbsp;<a class="follow" href="http://twitter.com/#!/NCAR_RDA"><img src="/images/twitter/Twitter_logo_white.png" width="18" height="18" align="absmiddle" border="0">&nbsp;Twitter</a><br>
+<div style="padding-top: 5px">
+  &copy; 2020 UCAR&nbsp;&nbsp;|&nbsp;&nbsp;
+  <a class="green" href="https://www.ucar.edu/privacy-policy">Privacy</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+  <a class="green" href="https://www.ucar.edu/cookie-other-tracking-technologies-notice">Cookies</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+  <a class="green" href="https://www.ucar.edu/terms-of-use">Terms of Use</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+  <a class="green" href="https://www.ucar.edu/notification-copyright-infringement-digital-millenium-copyright-act">Copyright issues</a><br />
+  <a class="green" href="https://www.nsf.gov/">Sponsored by NSF</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+  <a class="green" href="https://ncar.ucar.edu/">NCAR home</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+  <a class="green" href="https://www.ucar.edu/">UCAR home</a>
+</div>
+  </div><div id="shader" class="shader"></div>
+<!--
+<div id="modal-window" style="position: fixed; background-color: #fffff5; display: none; width: 600px; height: 300px; border-radius: 7px 7px 7px 7px; border: 15px solid #27aae0; padding: 10px; overflow: auto; z-index: 3000"><div id="modal-window-content" style="overflow: auto"><center><br /><br /><img src="/images/loader.gif" /><br /><span style="color: #a0a0a0">Loading...</span></center></div></div>
+-->
+<div id="modal-window" style="position: fixed; background-color: #fffff5; display: none; width: 600px; height: 300px; border-radius: 7px 7px 7px 7px; border: 15px solid #27aae0; padding: 10px; overflow: auto; z-index: 3000"><div id="modal-window-content"><center><br /><br /><img src="/images/loader.gif" /><br /><span style="color: #a0a0a0">Loading...</span></center></div></div>
+<div id="modal-window-close" style="width: 30px; height: 30px; position: fixed; z-index: 3002; display: none; cursor: pointer" onClick="hideModalWindow()"><img src="/images/close_button.png" /></div>
+<div id="orgnav">
+<script id="orgnav_script" language="javascript" type="text/javascript">
+
+// CUSTOM VARIABLES
+var contactLink = "mailto:rdahelp@ucar.edu";     // enter your Webmaster/Feedback link. Include http:// or mailto:
+var hideOrgNav = false;        // hide the entire OrgNav from view
+var hideFooter = true;          // hide the entire OrgFooter from view
+var hideNSF = true;               // hide the NSF disclaimer
+var footerColor = '#000000';       // hex color of the footer font including the #
+
+// DO NOT EDIT BELOW THIS POINT
+var jsHost = (("https:" == document.location.protocol) ? "https://" : "http://");
+if(typeof jQuery === "undefined"){
+  document.write("<scr"+"ipt src='"+jsHost+"ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js' type='text/javascript'></scr"+"ipt>");
+}
+document.write("<scr"+"ipt src='"+jsHost+"www2.ucar.edu/js/orgnav' type='text/javascript'></scr"+"ipt>");
+document.write("<scr"+"ipt src='/js/orgnav.js' type='text/javascript'></scr"+"ipt>");
+</script>
+</div>
+</div>
+</body>
+</html>
